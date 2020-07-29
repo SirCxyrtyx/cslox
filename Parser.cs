@@ -7,6 +7,8 @@ namespace CSharpLox
 {
     public class Parser
     {
+        private const int MAX_FUNCTION_PARAMS = 255;
+
         private class ParseError : Exception{}
 
         private readonly List<Token> Tokens;
@@ -38,7 +40,7 @@ namespace CSharpLox
         {
             Reset();
             Synchronize();
-            if (IsAtEnd())
+            if (IsAtEnd() && (Tokens.Count < 2 || Tokens[Tokens.Count - 2].Type != SEMICOLON))
             {
                 Reset();
                 try
@@ -60,6 +62,10 @@ namespace CSharpLox
         {
             try
             {
+                if (Match(FUN))
+                {
+                    return Function("function");
+                }
                 if (Match(VAR))
                 {
                     return VarDeclaration();
@@ -74,6 +80,28 @@ namespace CSharpLox
             }
         }
 
+        Stmnt Function(string kind)
+        {
+            Token name = Consume(IDENTIFIER, $"Expected {kind} name!");
+            Consume(LEFT_PAREN, $"Expected '(' after {kind} name!");
+            var parameters = new List<Token>();
+            if (!Check(RIGHT_PAREN))
+            {
+                do
+                {
+                    if (parameters.Count >= MAX_FUNCTION_PARAMS)
+                    {
+                        Error(Peek(), $"Cannot have more than {MAX_FUNCTION_PARAMS} parameters!");
+                    }
+                    parameters.Add(Consume(IDENTIFIER, "Expected parameter name!"));
+                } while (Match(COMMA));
+            }
+            Consume(RIGHT_PAREN, "Expected ')' after parameters!");
+
+            Consume(LEFT_BRACE, $"Expected '{{' before {kind} body!");
+            return new Function(name, parameters, Block());
+        }
+
         private Stmnt VarDeclaration()
         {
             Token name = Consume(IDENTIFIER, "Expected variable name!");
@@ -86,17 +114,109 @@ namespace CSharpLox
 
         Stmnt Statement()
         {
+            if (Match(FOR))
+            {
+                return ForStatement();
+            }
+            if (Match(IF))
+            {
+                return IfStatement();
+            }
             if (Match(PRINT))
             {
                 return PrintStatement();
             }
 
+            if (Match(RETURN))
+            {
+                return ReturnStatement();
+            }
+            if (Match(WHILE))
+            {
+                return WhileStatement();
+            }
             if (Match(LEFT_BRACE))
             {
                 return new BlockStatement(Block());
             }
 
             return ExpressionStatement();
+        }
+
+        Stmnt ReturnStatement()
+        {
+            Token keyword = Prev();
+            Expr value = null;
+            if (!Check(SEMICOLON))
+            {
+                value = Expression();
+            }
+
+            Consume(SEMICOLON, "Expected ';' after return value!");
+            return new ReturnStatement(keyword, value);
+        }
+
+        private Stmnt ForStatement()
+        {
+            Consume(LEFT_PAREN, "Expected '(' after 'for'!");
+
+            Stmnt init;
+            if (Match(SEMICOLON))
+            {
+                init = null;
+            }
+            else if (Match(VAR))
+            {
+                init = VarDeclaration();
+            }
+            else
+            {
+                init = ExpressionStatement();
+            }
+
+            Expr condition = Check(SEMICOLON) ? new Literal(true) : Expression();
+            Consume(SEMICOLON, "Expected ';' after loop condition!");
+
+            Expr increment = Check(RIGHT_PAREN) ? null : Expression();
+            Consume(RIGHT_PAREN, "Expected ')' after for clauses!");
+
+            Stmnt body = Statement();
+
+            if (increment != null)
+            {
+                body = new BlockStatement(new List<Stmnt> { body, new ExpressionStatement(increment) });
+            }
+            body = new WhileStatement(condition, body);
+            if (init != null)
+            {
+                body = new BlockStatement(new List<Stmnt> { init, body });
+            }
+
+            return body;
+        }
+
+        Stmnt WhileStatement()
+        {
+            Consume(LEFT_PAREN, "Expected '(' after 'while'!");
+            Expr condition = Expression();
+            Consume(RIGHT_PAREN, "Expected ')' after while condition!");
+            Stmnt body = Statement();
+            return new WhileStatement(condition, body);
+        }
+
+        Stmnt IfStatement()
+        {
+            Consume(LEFT_PAREN, "Expected '(' after 'if'!");
+            Expr condition = Expression();
+            Consume(RIGHT_PAREN, "Expected ')' after if condition!");
+
+            Stmnt thenBranch = Statement();
+            Stmnt elseBranch = null;
+            if (Match(ELSE))
+            {
+                elseBranch = Statement();
+            }
+            return new IfStatement(condition, thenBranch, elseBranch);
         }
 
         private List<Stmnt> Block()
@@ -150,14 +270,42 @@ namespace CSharpLox
 
         Expr Ternary()
         {
-            Expr expr = Equality();
+            Expr expr = Or();
 
             if (Match(QUESTION_MARK))
             {
-                Expr middle = Expression();
+                Expr middle = Or();
                 Consume(COLON, "Expected ':' in ternary expression");
-                Expr right = Expression();
+                Expr right = Or();
                 expr = new Ternary(expr, middle, right);
+            }
+
+            return expr;
+        }
+
+        Expr Or()
+        {
+            Expr expr = And();
+
+            while (Match(OR))
+            {
+                Token op = Prev();
+                Expr right = And();
+                return new Logical(expr, op, right);
+            }
+
+            return expr;
+        }
+
+        Expr And()
+        {
+            Expr expr = Equality();
+
+            while (Match(AND))
+            {
+                Token op = Prev();
+                Expr right = Equality();
+                return new Logical(expr, op, right);
             }
 
             return expr;
@@ -177,7 +325,46 @@ namespace CSharpLox
                 return new Unary(op, right);
             }
 
-            return Primary();
+            return Call();
+        }
+
+        Expr Call()
+        {
+            Expr expr = Primary();
+
+            while (true)
+            {
+                if (Match(LEFT_PAREN))
+                {
+                    expr = FinishCall(expr);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return expr;
+        }
+
+        private Expr FinishCall(Expr callee)
+        {
+            var args = new List<Expr>();
+            if (!Check(RIGHT_PAREN))
+            {
+                do
+                {
+                    if (args.Count >= MAX_FUNCTION_PARAMS)
+                    {
+                        Error(Peek(), $"Cannot have more than {MAX_FUNCTION_PARAMS} arguments!");
+                    }
+                    args.Add(Expression());
+                } while (Match(COMMA));
+            }
+
+            Token paren = Consume(RIGHT_PAREN, "Expected ')' after arguments!");
+
+            return new Call(callee, paren, args);
         }
 
         private Expr Primary()

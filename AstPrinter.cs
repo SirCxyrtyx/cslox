@@ -33,6 +33,21 @@ namespace CSharpLox
             return $"\n{{\n{string.Join("", stmnt.Statements.Select(st => st.AcceptVisitor(this)))}}}\n";
         }
 
+        public string Visit(Function stmnt)
+        {
+            return $"fun {stmnt.Name.Lexeme} ({string.Join(",", stmnt.Parameters.Select(p => p.Lexeme))})\n{{\n{string.Join("", stmnt.Body.Select(st => st.AcceptVisitor(this)))}}}\n";
+        }
+
+        public string Visit(IfStatement stmnt)
+        {
+            return $"if ({stmnt.Condition.AcceptVisitor(this)}) {stmnt.ThenBranch}{(stmnt.ElseBranch != null ? $" else {stmnt.ElseBranch}" : "")}";
+        }
+
+        public string Visit(WhileStatement stmnt)
+        {
+            return $"While ({stmnt.Condition.AcceptVisitor(this)}) {stmnt.Body}";
+        }
+
         public string Visit(Assign expr)
         {
             return Parenthesize($"= {expr.Name.Lexeme}", expr.Value);
@@ -40,12 +55,17 @@ namespace CSharpLox
 
         public string Visit(ExpressionStatement stmnt)
         {
-            return $"{stmnt.AcceptVisitor(this)};\n";
+            return $"{stmnt.Expression.AcceptVisitor(this)};\n";
         }
 
         public string Visit(PrintStatement stmnt)
         {
-            return $"print {stmnt.AcceptVisitor(this)};\n";
+            return $"print {stmnt.Expression.AcceptVisitor(this)};\n";
+        }
+
+        public string Visit(ReturnStatement stmnt)
+        {
+            return $"{stmnt.Keyword.Lexeme} {stmnt.Value.AcceptVisitor(this)};\n";
         }
 
         public string Visit(VarStatement stmnt)
@@ -58,6 +78,11 @@ namespace CSharpLox
             return Parenthesize(expr.Op.Lexeme, expr.Left, expr.Right);
         }
 
+        public string Visit(Call expr)
+        {
+            return $"{expr.Callee.AcceptVisitor(this)}({string.Join(",", expr.Args.Select(arg => arg.AcceptVisitor(this)))})";
+        }
+
         public string Visit(Grouping expr)
         {
             return Parenthesize("grouping", expr.Expression);
@@ -66,6 +91,11 @@ namespace CSharpLox
         public string Visit(Literal expr)
         {
             return expr.Value is null ? "nil" : expr.Value.ToString();
+        }
+
+        public string Visit(Logical expr)
+        {
+            return Parenthesize(expr.Op.Lexeme, expr.Left, expr.Right);
         }
 
         public string Visit(Unary expr)

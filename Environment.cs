@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CSharpLox
 {
-    internal class Environment
+    public class Environment
     {
         public readonly Environment Enclosing;
         readonly Dictionary<string, object> Values = new Dictionary<string, object>();
@@ -43,6 +43,7 @@ namespace CSharpLox
             if (Values.ContainsKey(name.Lexeme))
             {
                 Values[name.Lexeme] = value;
+                return;
             }
             else if (Enclosing != null)
             {

@@ -24,22 +24,32 @@ namespace CodeGenTool
                 Console.WriteLine($"\t{outputDir}");
                 Environment.Exit(1);
             }
-            DefineAST(outputDir, "Expr", new Dictionary<string, IEnumerable<(string, string)>>
+
+            const string Expr = "Expr";
+            const string Token = "Token";
+            const string Stmnt = "Stmnt";
+            DefineAST(outputDir, Expr, new Dictionary<string, IEnumerable<(string, string)>>
             {
-                ["Assign"] = new[] { ("Token", "Name"), ("Expr", "Value") },
-                ["Binary"] = new[] { ("Expr", "Left"), ("Token", "Op"), ("Expr", "Right")},
-                ["Grouping"] = new[] { ("Expr", "Expression") },
+                ["Assign"] = new[] { (Token, "Name"), (Expr, "Value") },
+                ["Binary"] = new[] { (Expr, "Left"), (Token, "Op"), (Expr, "Right")},
+                ["Call"] = new[] { (Expr, "Callee"), (Token, "Paren"), ($"List<{Expr}>", "Args") },
+                ["Grouping"] = new[] { (Expr, "Expression") },
                 ["Literal"] = new[] { ("object", "Value") },
-                ["Unary"] = new[] { ("Token", "Op"), ("Expr", "Right") },
-                ["Ternary"] = new[] { ("Expr", "Left"), ("Expr", "Middle"), ("Expr", "Right") },
-                ["Variable"] = new[] { ("Token", "Name") },
+                ["Logical"] = new[] { (Expr, "Left"), (Token, "Op"), (Expr, "Right") },
+                ["Unary"] = new[] { (Token, "Op"), (Expr, "Right") },
+                ["Ternary"] = new[] { (Expr, "Left"), (Expr, "Middle"), (Expr, "Right") },
+                ["Variable"] = new[] { (Token, "Name") },
             });
-            DefineAST(outputDir, "Stmnt", new Dictionary<string, IEnumerable<(string, string)>>
+            DefineAST(outputDir, Stmnt, new Dictionary<string, IEnumerable<(string, string)>>
             {
-                ["ExpressionStatement"] = new[] { ("Expr", "Expression") },
-                ["PrintStatement"] = new[] { ("Expr", "Expression") },
-                ["VarStatement"] = new []{ ("Token", "Name"), ("Expr", "Initializer")},
-                ["BlockStatement"] = new[] { ("List<Stmnt>", "Statements") },
+                ["ExpressionStatement"] = new[] { (Expr, "Expression") },
+                ["PrintStatement"] = new[] { (Expr, "Expression") },
+                ["ReturnStatement"] = new[] { (Token, "Keyword"), (Expr, "Value") },
+                ["VarStatement"] = new []{ (Token, "Name"), (Expr, "Initializer")},
+                ["BlockStatement"] = new[] { ($"List<{Stmnt}>", "Statements") },
+                ["Function"] = new[] { (Token, "Name"), ($"List<{Token}>", "Parameters"), ($"List<{Stmnt}>", "Body") },
+                ["IfStatement"] = new[] { (Expr, "Condition"), (Stmnt, "ThenBranch"), (Stmnt, "ElseBranch") },
+                ["WhileStatement"] = new[] { (Expr, "Condition"), (Stmnt, "Body") },
             });
         }
 

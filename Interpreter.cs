@@ -9,7 +9,16 @@ namespace CSharpLox
 {
     public class Interpreter : IVisitor<object>
     {
-        Environment Env = new Environment();
+        readonly Environment Globals = new Environment();
+        Environment Env;
+
+        public Interpreter()
+        {
+            Env = Globals;
+            Globals.Define("clock", new NativeFunc((interpreter, args) => (double)(DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond),
+                                                            () => 0));
+
+        }
 
         public void Interpret(List<Stmnt> statements)
         {
@@ -51,9 +60,39 @@ namespace CSharpLox
             return null;
         }
 
+        public object Visit(Function stmnt)
+        {
+            Env.Define(stmnt.Name.Lexeme, new LoxFunction(stmnt, Env));
+            return null;
+        }
+
+        public object Visit(IfStatement stmnt)
+        {
+            if (IsTruthy(Eval(stmnt.Condition)))
+            {
+                Execute(stmnt.ThenBranch);
+            }
+            else if (stmnt.ElseBranch != null)
+            {
+                Execute(stmnt.ElseBranch);
+            }
+
+            return null;
+        }
+
+        public object Visit(WhileStatement stmnt)
+        {
+            while (IsTruthy(Eval(stmnt.Condition)))
+            {
+                Execute(stmnt.Body);
+            }
+
+            return null;
+        }
+
         void Execute(Stmnt statement) => statement.AcceptVisitor(this);
 
-        void ExecuteBlock(List<Stmnt> statements, Environment environment)
+        public void ExecuteBlock(List<Stmnt> statements, Environment environment)
         {
             Environment previous = Env;
             try
@@ -76,7 +115,7 @@ namespace CSharpLox
             object value = Eval(expr.Value);
 
             Env.Assign(expr.Name, value);
-            return null;
+            return value;
         }
 
         public object Visit(ExpressionStatement stmnt)
@@ -90,6 +129,8 @@ namespace CSharpLox
             Console.WriteLine(Stringify(Eval(stmnt.Expression)));
             return null;
         }
+
+        public object Visit(ReturnStatement stmnt) => throw new Return(stmnt.Value != null ? Eval(stmnt.Value) : null);
 
         public object Visit(VarStatement stmnt)
         {
@@ -147,9 +188,37 @@ namespace CSharpLox
             }
         }
 
+        public object Visit(Call expr)
+        {
+            object callee = Eval(expr.Callee);
+
+            List<object> args = expr.Args.Select(Eval).ToList();
+
+            if (callee is ICallable function)
+            {
+                if (args.Count != function.Arity())
+                {
+                    throw new RuntimeError(expr.Paren, $"Expected {function.Arity()} arguments but got {args.Count}!");
+                }
+                return function.Call(this, args);
+            }
+            throw new RuntimeError(expr.Paren, "Can only call functions and classes!");
+        }
+
         public object Visit(Grouping expr) => Eval(expr.Expression);
 
         public object Visit(Literal expr) => expr.Value;
+        public object Visit(Logical expr)
+        {
+            object left = Eval(expr.Left);
+
+            return expr.Op.Type switch
+            {
+                OR when IsTruthy(left) => left,
+                AND when !IsTruthy(left) => left,
+                _ => Eval(expr.Right)
+            };
+        }
 
         public object Visit(Unary expr)
         {

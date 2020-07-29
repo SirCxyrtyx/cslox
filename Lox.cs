@@ -14,6 +14,7 @@ namespace CSharpLox
         static string[] Lines;
         static int[] LineStartPositions;
         static bool supressErrors;
+        private static bool replMode;
 
         static readonly Interpreter Interpreter = new Interpreter();
 
@@ -38,6 +39,7 @@ namespace CSharpLox
 
         private static void RunPrompt()
         {
+            replMode = true;
             LineStartPositions = new[] { 0 };
             Lines = new string[1];
             while (true)
@@ -50,7 +52,7 @@ namespace CSharpLox
                 }
 
                 Lines[0] = line;
-                Run(line, true);
+                Run(line);
                 HadError = HadRuntimeError = false;
             }
         }
@@ -86,7 +88,7 @@ namespace CSharpLox
             }
         }
 
-        static void Run(string source, bool replMode = false)
+        static void Run(string source)
         {
             var scanner = new Scanner(source);
             List<Token> tokens = scanner.ScanTokens();
@@ -145,10 +147,13 @@ namespace CSharpLox
             int col = pos - LineStartPositions[line - 1];
 
             Console.WriteLine($"{(runtime ? "Runtime ": "")}Error: {msg}");
-            Console.WriteLine();
-            string preLine = $"    {line} | ";
-            Console.WriteLine($"{preLine}{Lines[line - 1]}");
-            Console.WriteLine($"{new string(' ', preLine.Length + col)}^-- Here");
+            if (!(runtime && replMode))
+            {
+                Console.WriteLine();
+                string preLine = $"    {line} | ";
+                Console.WriteLine($"{preLine}{Lines[line - 1]}");
+                Console.WriteLine($"{new string(' ', preLine.Length + col)}^-- Here");
+            }
             if (runtime)
             {
                 HadRuntimeError = true;
