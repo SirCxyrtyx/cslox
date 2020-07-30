@@ -11,6 +11,7 @@ namespace CSharpLox
     {
         readonly Environment Globals = new Environment();
         Environment Env;
+        readonly Dictionary<Expr, int> locals = new Dictionary<Expr, int>();
 
         public Interpreter()
         {
@@ -49,9 +50,16 @@ namespace CSharpLox
 
         static string Stringify(object obj) => obj?.ToString() ?? "nil";
 
-        public object Visit(Variable expr)
+        public object Visit(Variable expr) => LookupVariable(expr.Name, expr);
+
+        private object LookupVariable(Token name, Expr expr)
         {
-            return Env.Get(expr.Name);
+            if (locals.TryGetValue(expr, out int distance))
+            {
+                return Env.GetAt(distance, name.Lexeme);
+            }
+
+            return Globals.Get(name);
         }
 
         public object Visit(BlockStatement stmnt)
@@ -114,7 +122,14 @@ namespace CSharpLox
         {
             object value = Eval(expr.Value);
 
-            Env.Assign(expr.Name, value);
+            if (locals.TryGetValue(expr, out int distance))
+            {
+                Env.AssignAt(distance, expr.Name, value);
+            }
+            else
+            {
+                Globals.Assign(expr.Name, value);
+            }
             return value;
         }
 
@@ -267,5 +282,7 @@ namespace CSharpLox
             }
             throw new RuntimeError(op, "Operands must be a number!");
         }
+
+        public void Resolve(Expr expr, int depth) => locals[expr] = depth;
     }
 }

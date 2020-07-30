@@ -116,6 +116,13 @@ namespace CSharpLox
                 return;
             }
 
+            new Resolver(Interpreter).Resolve(stmnts);
+
+            if (HadError)
+            {
+                return;
+            }
+
             Interpreter.Interpret(stmnts);
         }
 

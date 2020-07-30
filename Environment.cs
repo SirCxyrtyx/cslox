@@ -52,5 +52,27 @@ namespace CSharpLox
             }
             throw new RuntimeError(name, $"Undefined varable '{name.Lexeme}'!");
         }
+
+        public void AssignAt(int distance, Token name, object value)
+        {
+            Ancestor(distance).Values[name.Lexeme] = value;
+        }
+
+        public object GetAt(int distance, string name)
+        {
+            Ancestor(distance).Values.TryGetValue(name, out var value);
+            return value;
+        }
+
+        private Environment Ancestor(int distance)
+        {
+            var environment = this;
+            for (int i = 0; i < distance; i++)
+            {
+                environment = environment.Enclosing;
+            }
+
+            return environment;
+        }
     }
 }
