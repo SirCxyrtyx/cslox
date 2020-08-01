@@ -10,11 +10,13 @@ namespace CSharpLox
     {
         private readonly Function Declaration;
         private readonly Environment Closure;
+        private readonly bool IsInitializer;
 
-        public LoxFunction(Function declaration, Environment closure)
+        public LoxFunction(Function declaration, Environment closure, bool isInitializer)
         {
             Declaration = declaration;
             Closure = closure;
+            IsInitializer = isInitializer;
         }
 
         public object Call(Interpreter interpreter, List<object> args)
@@ -25,19 +27,28 @@ namespace CSharpLox
                 env.Define(param.Lexeme, arg);
             }
 
+            object retVal = null;
             try
             {
                 interpreter.ExecuteBlock(Declaration.Body, env);
             }
             catch (Return returnVal)
             {
-                return returnVal.Value;
+                retVal = returnVal.Value;
             }
-            return null;
+
+            return IsInitializer ? Closure.GetAt(0, "this") : retVal;
         }
 
         public int Arity() => Declaration.Parameters.Count;
 
         public override string ToString() => $"<fn {Declaration.Name.Lexeme}>";
+
+        public LoxFunction Bind(LoxInstance instance)
+        {
+            var environment = new Environment(Closure);
+            environment.Define("this", instance);
+            return new LoxFunction(Declaration, environment, IsInitializer);
+        }
     }
 }

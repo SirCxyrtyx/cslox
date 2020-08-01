@@ -8,9 +8,12 @@ namespace CSharpLox
         public T Visit(Assign expr);
         public T Visit(Binary expr);
         public T Visit(Call expr);
+        public T Visit(Get expr);
         public T Visit(Grouping expr);
         public T Visit(Literal expr);
         public T Visit(Logical expr);
+        public T Visit(SetExpr expr);
+        public T Visit(This expr);
         public T Visit(Unary expr);
         public T Visit(Ternary expr);
         public T Visit(Variable expr);
@@ -67,6 +70,20 @@ namespace CSharpLox
         public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);
     }
 
+    public class Get : Expr
+    {
+        public Expr Obj;
+        public Token Name;
+
+        public Get(Expr obj, Token name)
+        {
+            Obj = obj;
+            Name = name;
+        }
+
+        public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);
+    }
+
     public class Grouping : Expr
     {
         public Expr Expression;
@@ -102,6 +119,34 @@ namespace CSharpLox
             Left = left;
             Op = op;
             Right = right;
+        }
+
+        public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);
+    }
+
+    public class SetExpr : Expr
+    {
+        public Expr Obj;
+        public Token Name;
+        public Expr Value;
+
+        public SetExpr(Expr obj, Token name, Expr value)
+        {
+            Obj = obj;
+            Name = name;
+            Value = value;
+        }
+
+        public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);
+    }
+
+    public class This : Expr
+    {
+        public Token Keyword;
+
+        public This(Token keyword)
+        {
+            Keyword = keyword;
         }
 
         public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);

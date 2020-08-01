@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CSharpLox
 {
@@ -11,12 +8,21 @@ namespace CSharpLox
         enum FunctionType
         {
             NONE,
-            FUNCTION
+            FUNCTION,
+            INITIALIZER,
+            METHOD
+        }
+
+        enum ClassType
+        {
+            NONE,
+            CLASS
         }
 
         private readonly Interpreter interpreter;
         private readonly Stack<Dictionary<string, bool>> Scopes = new Stack<Dictionary<string, bool>>();
         private FunctionType currentFunction = FunctionType.NONE;
+        private ClassType currentClass = ClassType.NONE;    
 
         public Resolver(Interpreter interpreter)
         {
@@ -80,6 +86,10 @@ namespace CSharpLox
             }
             if (stmnt.Value != null)
             {
+                if (currentFunction == FunctionType.INITIALIZER)
+                {
+                    Lox.Error(stmnt.Keyword, "Cannot return a value from an initializer!");
+                }
                 Resolve(stmnt.Value);
             }
             return null;
@@ -93,6 +103,24 @@ namespace CSharpLox
                 Resolve(stmnt.Initializer);
             }
             Define(stmnt.Name);
+            return null;
+        }
+
+        public object Visit(ClassDeclaration stmnt)
+        {
+            ClassType enclosingClass = currentClass;
+            currentClass = ClassType.CLASS;
+            Declare(stmnt.Name);
+            Define(stmnt.Name);
+            BeginScope();
+            Scopes.Peek()["this"] = true;
+            foreach (Function method in stmnt.Methods)
+            {
+                FunctionType declaration = method.Name.Lexeme == LoxClass.ConstructorName ? FunctionType.INITIALIZER : FunctionType.METHOD;
+                ResolveFunction(method, declaration);
+            }
+            EndScope();
+            currentClass = enclosingClass;
             return null;
         }
 
@@ -171,6 +199,12 @@ namespace CSharpLox
             return null;
         }
 
+        public object Visit(Get expr)
+        {
+            Resolve(expr.Obj);
+            return null;
+        }
+
         public object Visit(Grouping expr)
         {
             Resolve(expr.Expression);
@@ -186,6 +220,24 @@ namespace CSharpLox
         {
             Resolve(expr.Left);
             Resolve(expr.Right);
+            return null;
+        }
+
+        public object Visit(SetExpr expr)
+        {
+            Resolve(expr.Value);
+            Resolve(expr.Obj);
+            return null;
+        }
+
+        public object Visit(This expr)
+        {
+            if (currentClass == ClassType.NONE)
+            {
+                Lox.Error(expr.Keyword, $"Cannot use '{expr.Keyword.Lexeme}' outside of a class!");
+                return null;
+            }
+            ResolveLocal(expr, expr.Keyword);
             return null;
         }
 

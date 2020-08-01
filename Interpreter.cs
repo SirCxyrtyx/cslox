@@ -62,6 +62,21 @@ namespace CSharpLox
             return Globals.Get(name);
         }
 
+        public object Visit(ClassDeclaration stmnt)
+        {
+            Env.Define(stmnt.Name.Lexeme, null);
+
+            var methods = new Dictionary<string, LoxFunction>();
+            foreach (Function method in stmnt.Methods)
+            {
+                var func = new LoxFunction(method, Env, method.Name.Lexeme == LoxClass.ConstructorName);
+                methods[method.Name.Lexeme] = func;
+            }
+
+            Env.Assign(stmnt.Name, new LoxClass(stmnt.Name.Lexeme, methods));
+            return null;
+        }
+
         public object Visit(BlockStatement stmnt)
         {
             ExecuteBlock(stmnt.Statements, new Environment(Env));
@@ -220,6 +235,15 @@ namespace CSharpLox
             throw new RuntimeError(expr.Paren, "Can only call functions and classes!");
         }
 
+        public object Visit(Get expr)
+        {
+            if (Eval(expr.Obj) is LoxInstance inst)
+            {
+                return inst.Get(expr.Name);
+            }
+            throw new RuntimeError(expr.Name, "Only class instances have properties!");
+        }
+
         public object Visit(Grouping expr) => Eval(expr.Expression);
 
         public object Visit(Literal expr) => expr.Value;
@@ -233,6 +257,22 @@ namespace CSharpLox
                 AND when !IsTruthy(left) => left,
                 _ => Eval(expr.Right)
             };
+        }
+
+        public object Visit(SetExpr expr)
+        {
+            if (Eval(expr.Obj) is LoxInstance instance)
+            {
+                object value = Eval(expr.Value);
+                instance.Set(expr.Name, value);
+                return value;
+            }
+            throw new RuntimeError(expr.Name, "Only class instances have fields!");
+        }
+
+        public object Visit(This expr)
+        {
+            return LookupVariable(expr.Keyword, expr);
         }
 
         public object Visit(Unary expr)

@@ -28,6 +28,11 @@ namespace CSharpLox
             return expr.Name.Lexeme;
         }
 
+        public string Visit(ClassDeclaration stmnt)
+        {
+            return $"class {stmnt.Name}\n{{\n{string.Join("\n\n", stmnt.Methods.Select(meth => meth.AcceptVisitor(this)))}\n}}\n";
+        }
+
         public string Visit(BlockStatement stmnt)
         {
             return $"\n{{\n{string.Join("", stmnt.Statements.Select(st => st.AcceptVisitor(this)))}}}\n";
@@ -83,6 +88,11 @@ namespace CSharpLox
             return $"{expr.Callee.AcceptVisitor(this)}({string.Join(",", expr.Args.Select(arg => arg.AcceptVisitor(this)))})";
         }
 
+        public string Visit(Get expr)
+        {
+            return $"(. {expr.Obj.AcceptVisitor(this)} {expr.Name.Lexeme})";
+        }
+
         public string Visit(Grouping expr)
         {
             return Parenthesize("grouping", expr.Expression);
@@ -96,6 +106,16 @@ namespace CSharpLox
         public string Visit(Logical expr)
         {
             return Parenthesize(expr.Op.Lexeme, expr.Left, expr.Right);
+        }
+
+        public string Visit(SetExpr expr)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string Visit(This expr)
+        {
+            return expr.Keyword.Lexeme;
         }
 
         public string Visit(Unary expr)

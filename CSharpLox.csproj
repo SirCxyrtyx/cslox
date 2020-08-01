@@ -51,7 +51,9 @@
     <Compile Include="ICallable.cs" />
     <Compile Include="Interpreter.cs" />
     <Compile Include="Lox.cs" />
+    <Compile Include="LoxClass.cs" />
     <Compile Include="LoxFunction.cs" />
+    <Compile Include="LoxInstance.cs" />
     <Compile Include="NativeFunc.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

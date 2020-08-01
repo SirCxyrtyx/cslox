@@ -9,6 +9,7 @@ namespace CSharpLox
         public T Visit(PrintStatement stmnt);
         public T Visit(ReturnStatement stmnt);
         public T Visit(VarStatement stmnt);
+        public T Visit(ClassDeclaration stmnt);
         public T Visit(BlockStatement stmnt);
         public T Visit(Function stmnt);
         public T Visit(IfStatement stmnt);
@@ -67,6 +68,20 @@ namespace CSharpLox
         {
             Name = name;
             Initializer = initializer;
+        }
+
+        public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);
+    }
+
+    public class ClassDeclaration : Stmnt
+    {
+        public Token Name;
+        public List<Function> Methods;
+
+        public ClassDeclaration(Token name, List<Function> methods)
+        {
+            Name = name;
+            Methods = methods;
         }
 
         public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);

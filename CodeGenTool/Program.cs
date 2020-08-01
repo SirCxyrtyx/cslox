@@ -28,14 +28,18 @@ namespace CodeGenTool
             const string Expr = "Expr";
             const string Token = "Token";
             const string Stmnt = "Stmnt";
+            const string Function = "Function";
             DefineAST(outputDir, Expr, new Dictionary<string, IEnumerable<(string, string)>>
             {
                 ["Assign"] = new[] { (Token, "Name"), (Expr, "Value") },
                 ["Binary"] = new[] { (Expr, "Left"), (Token, "Op"), (Expr, "Right")},
                 ["Call"] = new[] { (Expr, "Callee"), (Token, "Paren"), ($"List<{Expr}>", "Args") },
+                ["Get"] = new[] { (Expr, "Obj"), (Token, "Name") },
                 ["Grouping"] = new[] { (Expr, "Expression") },
                 ["Literal"] = new[] { ("object", "Value") },
                 ["Logical"] = new[] { (Expr, "Left"), (Token, "Op"), (Expr, "Right") },
+                ["SetExpr"] = new[] { (Expr, "Obj"), (Token, "Name"), (Expr, "Value") },
+                ["This"] = new[] { (Token, "Keyword") },
                 ["Unary"] = new[] { (Token, "Op"), (Expr, "Right") },
                 ["Ternary"] = new[] { (Expr, "Left"), (Expr, "Middle"), (Expr, "Right") },
                 ["Variable"] = new[] { (Token, "Name") },
@@ -46,8 +50,9 @@ namespace CodeGenTool
                 ["PrintStatement"] = new[] { (Expr, "Expression") },
                 ["ReturnStatement"] = new[] { (Token, "Keyword"), (Expr, "Value") },
                 ["VarStatement"] = new []{ (Token, "Name"), (Expr, "Initializer")},
+                ["ClassDeclaration"] = new[] { (Token, "Name"), ($"List<{Function}>", "Methods") },
                 ["BlockStatement"] = new[] { ($"List<{Stmnt}>", "Statements") },
-                ["Function"] = new[] { (Token, "Name"), ($"List<{Token}>", "Parameters"), ($"List<{Stmnt}>", "Body") },
+                [Function] = new[] { (Token, "Name"), ($"List<{Token}>", "Parameters"), ($"List<{Stmnt}>", "Body") },
                 ["IfStatement"] = new[] { (Expr, "Condition"), (Stmnt, "ThenBranch"), (Stmnt, "ElseBranch") },
                 ["WhileStatement"] = new[] { (Expr, "Condition"), (Stmnt, "Body") },
             });

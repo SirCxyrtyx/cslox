@@ -62,6 +62,10 @@ namespace CSharpLox
         {
             try
             {
+                if (Match(CLASS))
+                {
+                    return ClassDeclaration();
+                }
                 if (Match(FUN))
                 {
                     return Function("function");
@@ -80,7 +84,22 @@ namespace CSharpLox
             }
         }
 
-        Stmnt Function(string kind)
+        Stmnt ClassDeclaration()
+        {
+            Token name = Consume(IDENTIFIER, "Expected class name!");
+            Consume(LEFT_BRACE, "Expected '{' before class body!");
+
+            var methods = new List<Function>();
+            while (!Check(RIGHT_BRACE) && !IsAtEnd())
+            {
+                methods.Add(Function("method"));
+            }
+
+            Consume(RIGHT_BRACE, "Expected '}' after class body!");
+            return new ClassDeclaration(name, methods);
+        }
+
+        Function Function(string kind)
         {
             Token name = Consume(IDENTIFIER, $"Expected {kind} name!");
             Consume(LEFT_PAREN, $"Expected '(' after {kind} name!");
@@ -261,6 +280,10 @@ namespace CSharpLox
                 {
                     return new Assign(variable.Name, value);
                 }
+                else if (expr is Get get)
+                {
+                    return new SetExpr(get.Obj, get.Name, value);
+                }
 
                 Error(equals, "Invalid assignment target!");
             }
@@ -338,6 +361,10 @@ namespace CSharpLox
                 {
                     expr = FinishCall(expr);
                 }
+                else if (Match(DOT))
+                {
+                    expr = new Get(expr, Consume(IDENTIFIER, "Expected property name after '.'!"));
+                }
                 else
                 {
                     break;
@@ -386,6 +413,10 @@ namespace CSharpLox
                 return new Literal(Prev().Literal);
             }
 
+            if (Match(IDENTIFIER))
+            {
+                return new This(Prev());
+            }
             if (Match(IDENTIFIER))
             {
                 return new Variable(Prev());
