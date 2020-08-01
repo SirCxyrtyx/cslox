@@ -76,11 +76,13 @@ namespace CSharpLox
     public class ClassDeclaration : Stmnt
     {
         public Token Name;
+        public Variable Superclass;
         public List<Function> Methods;
 
-        public ClassDeclaration(Token name, List<Function> methods)
+        public ClassDeclaration(Token name, Variable superclass, List<Function> methods)
         {
             Name = name;
+            Superclass = superclass;
             Methods = methods;
         }
 

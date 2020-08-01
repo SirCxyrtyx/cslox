@@ -30,7 +30,7 @@ namespace CSharpLox
 
         public string Visit(ClassDeclaration stmnt)
         {
-            return $"class {stmnt.Name}\n{{\n{string.Join("\n\n", stmnt.Methods.Select(meth => meth.AcceptVisitor(this)))}\n}}\n";
+            return $"class {stmnt.Name}{(stmnt.Superclass != null ? $" < {stmnt.Superclass.AcceptVisitor(this)}" : "" )}\n{{\n{string.Join("\n\n", stmnt.Methods.Select(meth => meth.AcceptVisitor(this)))}\n}}\n";
         }
 
         public string Visit(BlockStatement stmnt)
@@ -111,6 +111,11 @@ namespace CSharpLox
         public string Visit(SetExpr expr)
         {
             throw new NotImplementedException();
+        }
+
+        public string Visit(Super expr)
+        {
+            return $"{expr.Keyword.Lexeme}.{expr.Method.Lexeme}";
         }
 
         public string Visit(This expr)

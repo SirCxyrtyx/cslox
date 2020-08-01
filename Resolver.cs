@@ -16,7 +16,8 @@ namespace CSharpLox
         enum ClassType
         {
             NONE,
-            CLASS
+            CLASS,
+            SUBCLASS
         }
 
         private readonly Interpreter interpreter;
@@ -112,6 +113,19 @@ namespace CSharpLox
             currentClass = ClassType.CLASS;
             Declare(stmnt.Name);
             Define(stmnt.Name);
+            if (stmnt.Superclass != null)
+            {
+                currentClass = ClassType.SUBCLASS;
+                if (stmnt.Name.Lexeme == stmnt.Superclass.Name.Lexeme)
+                {
+                    Lox.Error(stmnt.Superclass.Name, "A class cannot inherit from itself!");
+                }
+                Resolve(stmnt.Superclass);
+
+                BeginScope();
+                Scopes.Peek()["super"] = true;
+            }
+
             BeginScope();
             Scopes.Peek()["this"] = true;
             foreach (Function method in stmnt.Methods)
@@ -120,6 +134,10 @@ namespace CSharpLox
                 ResolveFunction(method, declaration);
             }
             EndScope();
+            if (stmnt.Superclass != null)
+            {
+                EndScope();
+            }
             currentClass = enclosingClass;
             return null;
         }
@@ -227,6 +245,20 @@ namespace CSharpLox
         {
             Resolve(expr.Value);
             Resolve(expr.Obj);
+            return null;
+        }
+
+        public object Visit(Super expr)
+        {
+            if (currentClass == ClassType.NONE)
+            {
+                Lox.Error(expr.Keyword, $"Cannot use '{expr.Keyword.Lexeme}' outside of a class!");
+            }
+            else if (currentClass == ClassType.CLASS)
+            {
+                Lox.Error(expr.Keyword, $"Cannot use '{expr.Keyword.Lexeme}' in a class with no superclass!");
+            }
+            ResolveLocal(expr, expr.Keyword);
             return null;
         }
 

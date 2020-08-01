@@ -29,6 +29,7 @@ namespace CodeGenTool
             const string Token = "Token";
             const string Stmnt = "Stmnt";
             const string Function = "Function";
+            const string Variable = "Variable";
             DefineAST(outputDir, Expr, new Dictionary<string, IEnumerable<(string, string)>>
             {
                 ["Assign"] = new[] { (Token, "Name"), (Expr, "Value") },
@@ -39,10 +40,11 @@ namespace CodeGenTool
                 ["Literal"] = new[] { ("object", "Value") },
                 ["Logical"] = new[] { (Expr, "Left"), (Token, "Op"), (Expr, "Right") },
                 ["SetExpr"] = new[] { (Expr, "Obj"), (Token, "Name"), (Expr, "Value") },
+                ["Super"] = new[] { (Token, "Keyword"), (Token, "Method") },
                 ["This"] = new[] { (Token, "Keyword") },
                 ["Unary"] = new[] { (Token, "Op"), (Expr, "Right") },
                 ["Ternary"] = new[] { (Expr, "Left"), (Expr, "Middle"), (Expr, "Right") },
-                ["Variable"] = new[] { (Token, "Name") },
+                [Variable] = new[] { (Token, "Name") },
             });
             DefineAST(outputDir, Stmnt, new Dictionary<string, IEnumerable<(string, string)>>
             {
@@ -50,7 +52,7 @@ namespace CodeGenTool
                 ["PrintStatement"] = new[] { (Expr, "Expression") },
                 ["ReturnStatement"] = new[] { (Token, "Keyword"), (Expr, "Value") },
                 ["VarStatement"] = new []{ (Token, "Name"), (Expr, "Initializer")},
-                ["ClassDeclaration"] = new[] { (Token, "Name"), ($"List<{Function}>", "Methods") },
+                ["ClassDeclaration"] = new[] { (Token, "Name"), (Variable, "Superclass"), ($"List<{Function}>", "Methods") },
                 ["BlockStatement"] = new[] { ($"List<{Stmnt}>", "Statements") },
                 [Function] = new[] { (Token, "Name"), ($"List<{Token}>", "Parameters"), ($"List<{Stmnt}>", "Body") },
                 ["IfStatement"] = new[] { (Expr, "Condition"), (Stmnt, "ThenBranch"), (Stmnt, "ElseBranch") },

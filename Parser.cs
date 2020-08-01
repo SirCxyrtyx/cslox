@@ -87,6 +87,14 @@ namespace CSharpLox
         Stmnt ClassDeclaration()
         {
             Token name = Consume(IDENTIFIER, "Expected class name!");
+
+            Variable superClass = null;
+            if (Match(LESS))
+            {
+                Consume(IDENTIFIER, "Expected Superclass name!");
+                superClass = new Variable(Prev());
+            }
+
             Consume(LEFT_BRACE, "Expected '{' before class body!");
 
             var methods = new List<Function>();
@@ -96,7 +104,7 @@ namespace CSharpLox
             }
 
             Consume(RIGHT_BRACE, "Expected '}' after class body!");
-            return new ClassDeclaration(name, methods);
+            return new ClassDeclaration(name, superClass, methods);
         }
 
         Function Function(string kind)
@@ -413,7 +421,13 @@ namespace CSharpLox
                 return new Literal(Prev().Literal);
             }
 
-            if (Match(IDENTIFIER))
+            if (Match(SUPER))
+            {
+                Token keyword = Prev();
+                Consume(DOT, "Expected '.' after 'super'!");
+                return new Super(keyword, Consume(IDENTIFIER, "Expected superclass method name!"));
+            }
+            if (Match(THIS))
             {
                 return new This(Prev());
             }

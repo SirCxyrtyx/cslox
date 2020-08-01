@@ -13,6 +13,7 @@ namespace CSharpLox
         public T Visit(Literal expr);
         public T Visit(Logical expr);
         public T Visit(SetExpr expr);
+        public T Visit(Super expr);
         public T Visit(This expr);
         public T Visit(Unary expr);
         public T Visit(Ternary expr);
@@ -135,6 +136,20 @@ namespace CSharpLox
             Obj = obj;
             Name = name;
             Value = value;
+        }
+
+        public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);
+    }
+
+    public class Super : Expr
+    {
+        public Token Keyword;
+        public Token Method;
+
+        public Super(Token keyword, Token method)
+        {
+            Keyword = keyword;
+            Method = method;
         }
 
         public override T AcceptVisitor<T>(IVisitor<T> visitor) => visitor.Visit(this);

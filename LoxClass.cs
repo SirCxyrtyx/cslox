@@ -8,11 +8,13 @@ namespace CSharpLox
         public const string ConstructorName = "init";
 
         public readonly string Name;
+        public readonly LoxClass Superclass;
         private readonly Dictionary<string, LoxFunction> Methods;
 
-        public LoxClass(string name, Dictionary<string, LoxFunction> methods)
+        public LoxClass(string name, LoxClass superClass, Dictionary<string, LoxFunction> methods)
         {
             Name = name;
+            Superclass = superClass;
             Methods = methods;
         }
 
@@ -48,7 +50,7 @@ namespace CSharpLox
                 return method;
             }
 
-            return null;
+            return Superclass?.FindMethod(name);
         }
     }
 }

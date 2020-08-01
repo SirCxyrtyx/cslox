@@ -64,7 +64,23 @@ namespace CSharpLox
 
         public object Visit(ClassDeclaration stmnt)
         {
+            LoxClass superClass = null;
+            if (stmnt.Superclass != null)
+            {
+                superClass = Eval(stmnt.Superclass) as LoxClass;
+                if (superClass is null)
+                {
+                    throw new RuntimeError(stmnt.Superclass.Name, "Superclass must be a class!");
+                }
+            }
+
             Env.Define(stmnt.Name.Lexeme, null);
+
+            if (stmnt.Superclass != null)
+            {
+                Env = new Environment(Env);
+                Env.Define("super", superClass);
+            }
 
             var methods = new Dictionary<string, LoxFunction>();
             foreach (Function method in stmnt.Methods)
@@ -73,7 +89,11 @@ namespace CSharpLox
                 methods[method.Name.Lexeme] = func;
             }
 
-            Env.Assign(stmnt.Name, new LoxClass(stmnt.Name.Lexeme, methods));
+            if (stmnt.Superclass != null)
+            {
+                Env = Env.Enclosing;
+            }
+            Env.Assign(stmnt.Name, new LoxClass(stmnt.Name.Lexeme, superClass, methods));
             return null;
         }
 
@@ -85,7 +105,7 @@ namespace CSharpLox
 
         public object Visit(Function stmnt)
         {
-            Env.Define(stmnt.Name.Lexeme, new LoxFunction(stmnt, Env));
+            Env.Define(stmnt.Name.Lexeme, new LoxFunction(stmnt, Env, false));
             return null;
         }
 
@@ -268,6 +288,19 @@ namespace CSharpLox
                 return value;
             }
             throw new RuntimeError(expr.Name, "Only class instances have fields!");
+        }
+
+        public object Visit(Super expr)
+        {
+            int distance = locals[expr];
+            LoxClass superClass = (LoxClass)Env.GetAt(distance, "super");
+            LoxInstance inst = (LoxInstance)Env.GetAt(distance - 1, "this");
+            LoxFunction method = superClass.FindMethod(expr.Method.Lexeme);
+            if (method is null)
+            {
+                throw new RuntimeError(expr.Method, $"Undefined Property {expr.Method.Lexeme}!");
+            }
+            return method.Bind(inst);
         }
 
         public object Visit(This expr)
