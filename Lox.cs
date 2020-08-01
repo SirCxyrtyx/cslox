@@ -28,8 +28,6 @@ namespace CSharpLox
             else if (args.Length == 1)
             {
                 RunFile(args[0]);
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
             }
             else
             {
